@@ -14,8 +14,8 @@ export class UsuariosController {
     return this.usuariosService.login(loginUsuarioDto);
   }
 
-  @Post()
-  @UseGuards(JwtAuthGuard)
+  @Post('create')
+  // @UseGuards(JwtAuthGuard)
   create(@Body() createUsuarioDto: CreateUsuarioDto) {
     return this.usuariosService.create(createUsuarioDto);
   }

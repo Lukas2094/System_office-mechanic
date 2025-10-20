@@ -32,12 +32,11 @@ export class Usuario {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  // Relações
-  @ManyToOne(() => Funcionario)
+  @ManyToOne(() => Funcionario, { nullable: true })
   @JoinColumn({ name: 'funcionario_id' })
   funcionario: Funcionario;
 
-  @ManyToOne(() => Cargo)
+  @ManyToOne(() => Cargo, { nullable: true })
   @JoinColumn({ name: 'cargo_id' })
   cargo: Cargo;
 

@@ -45,6 +45,7 @@ export class UsuariosService {
   async findAll(): Promise<Usuario[]> {
     try {
       return await this.usuarioRepository.find({
+        select: ['id', 'username', 'ativo', 'ultimo_login', 'funcionario_id', 'cargo_id'],
         relations: ['funcionario', 'cargo'],
         order: { username: 'ASC' }
       });

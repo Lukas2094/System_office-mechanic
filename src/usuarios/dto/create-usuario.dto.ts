@@ -1,14 +1,14 @@
-import { IsString, IsInt, IsBoolean, IsOptional, MinLength, MaxLength, IsNotEmpty } from 'class-validator';
+import { IsString, IsInt, IsBoolean, IsOptional, MinLength, MaxLength, IsNotEmpty, Min } from 'class-validator';
 
 export class CreateUsuarioDto {
   @IsOptional()
   @IsInt()
-  @MinLength(1)
+  @Min(1)
   funcionario_id?: number;
 
   @IsOptional()
   @IsInt()
-  @MinLength(1)
+  @Min(1)
   cargo_id?: number;
 
   @IsString()

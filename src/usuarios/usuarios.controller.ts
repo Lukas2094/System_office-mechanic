@@ -1,85 +1,132 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseIntPipe,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { LoginUsuarioDto } from './dto/login-usuario.dto';
 import { JwtAuthGuard } from '@/jwt-guards/jwt-auth.guard';
+import { UsuariosGateway } from './usuarios.gateway';
 
 @Controller('usuarios')
 export class UsuariosController {
-  constructor(private readonly usuariosService: UsuariosService) {}
+  constructor(
+    private readonly usuariosService: UsuariosService,
+    private readonly gateway: UsuariosGateway,
+  ) { }
 
   @Post('login')
   async login(@Body() loginUsuarioDto: LoginUsuarioDto) {
-    return this.usuariosService.login(loginUsuarioDto);
+    const result = await this.usuariosService.login(loginUsuarioDto);
+    this.gateway.server.emit('usuario:login', { username: loginUsuarioDto.username });
+    return result;
   }
 
   @Post('create')
   // @UseGuards(JwtAuthGuard)
-  create(@Body() createUsuarioDto: CreateUsuarioDto) {
-    return this.usuariosService.create(createUsuarioDto);
+  async create(@Body() createUsuarioDto: CreateUsuarioDto) {
+    const usuario = await this.usuariosService.create(createUsuarioDto);
+
+    // 🔥 Notifica todos os clientes WebSocket
+    this.gateway.server.emit('usuario:created', usuario);
+
+    return usuario;
   }
 
   @Get()
   @UseGuards(JwtAuthGuard)
-  findAll() {
-    return this.usuariosService.findAll();
+  async findAll() {
+    const usuarios = await this.usuariosService.findAll();
+    return usuarios;
   }
 
   @Get('estatisticas')
   @UseGuards(JwtAuthGuard)
-  getEstatisticas() {
-    return this.usuariosService.getEstatisticas();
+  async getEstatisticas() {
+    const estatisticas = await this.usuariosService.getEstatisticas();
+    this.gateway.server.emit('usuario:estatisticas', estatisticas);
+    return estatisticas;
   }
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  getMe(@Request() req) {
+  async getMe(@Request() req) {
     return this.usuariosService.findOne(req.user.sub);
   }
 
   @Get(':id')
   @UseGuards(JwtAuthGuard)
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.usuariosService.findOne(id);
   }
 
   @Get('username/:username')
   @UseGuards(JwtAuthGuard)
-  findByUsername(@Param('username') username: string) {
+  async findByUsername(@Param('username') username: string) {
     return this.usuariosService.findByUsername(username);
   }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateUsuarioDto: UpdateUsuarioDto) {
-    return this.usuariosService.update(id, updateUsuarioDto);
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateUsuarioDto: UpdateUsuarioDto,
+  ) {
+    const usuario = await this.usuariosService.update(id, updateUsuarioDto);
+
+    // 🔥 Notifica todos os sockets
+    this.gateway.server.emit('usuario:updated', usuario);
+
+    return usuario;
   }
 
   @Patch(':id/change-password')
   @UseGuards(JwtAuthGuard)
-  changePassword(
+  async changePassword(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { oldPassword: string; newPassword: string }
+    @Body() body: { oldPassword: string; newPassword: string },
   ) {
-    return this.usuariosService.changePassword(id, body.oldPassword, body.newPassword);
+    const result = await this.usuariosService.changePassword(
+      id,
+      body.oldPassword,
+      body.newPassword,
+    );
+
+    this.gateway.server.emit('usuario:password:changed', { id });
+    return result;
   }
 
   @Patch(':id/deactivate')
   @UseGuards(JwtAuthGuard)
-  deactivateUser(@Param('id', ParseIntPipe) id: number) {
-    return this.usuariosService.deactivateUser(id);
+  async deactivateUser(@Param('id', ParseIntPipe) id: number) {
+    const usuario = await this.usuariosService.deactivateUser(id);
+    this.gateway.server.emit('usuario:deactivated', { id, usuario });
+    return usuario;
   }
 
   @Patch(':id/activate')
   @UseGuards(JwtAuthGuard)
-  activateUser(@Param('id', ParseIntPipe) id: number) {
-    return this.usuariosService.activateUser(id);
+  async activateUser(@Param('id', ParseIntPipe) id: number) {
+    const usuario = await this.usuariosService.activateUser(id);
+    this.gateway.server.emit('usuario:activated', { id, usuario });
+    return usuario;
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.usuariosService.remove(id);
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    const usuario = await this.usuariosService.remove(id);
+    this.gateway.server.emit('usuario:deleted', { id });
+
+    return usuario;
   }
 }

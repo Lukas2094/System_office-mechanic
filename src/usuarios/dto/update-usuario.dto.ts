@@ -1,6 +1,6 @@
 import { PartialType, OmitType } from '@nestjs/mapped-types';
 import { CreateUsuarioDto } from './create-usuario.dto';
-import { IsOptional, IsString, MinLength } from 'class-validator';
+import { IsOptional, IsString, MinLength, IsBoolean, IsNumber } from 'class-validator';
 
 export class UpdateUsuarioDto extends PartialType(
   OmitType(CreateUsuarioDto, ['senha'] as const)
@@ -9,4 +9,12 @@ export class UpdateUsuarioDto extends PartialType(
   @IsString()
   @MinLength(6)
   senha?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  ativo?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  cargo_id?: number;
 }

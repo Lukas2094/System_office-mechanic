@@ -9,14 +9,20 @@ import { Usuario } from './entities/usuario.entity';
 import { JwtStrategy } from '@/jwt-guards/jwt.strategy';
 import { FuncionariosModule } from '../funcionarios/funcionarios.module';
 import { CargosModule } from '../cargos/cargos.module';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forFeature([Usuario]),
     PassportModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'secretKey',
-      signOptions: { expiresIn: '24h' },
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: { expiresIn: '24h' },
+      }),
+      inject: [ConfigService],
     }),
     FuncionariosModule,
     CargosModule,

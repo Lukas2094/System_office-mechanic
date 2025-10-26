@@ -17,4 +17,8 @@ export class UpdateUsuarioDto extends PartialType(
   @IsOptional()
   @IsNumber()
   cargo_id?: number;
+
+
+  @IsOptional()
+  email?: string | undefined;
 }

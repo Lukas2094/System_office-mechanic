@@ -1,15 +1,23 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Veiculo } from './entities/veiculo.entity';
-import { VeiculosController } from './veiculos.controller';
 import { VeiculosService } from './veiculos.service';
-import { VeiculosGateway } from './veiculos.gateway';
+import { VeiculosController } from './veiculos.controller';
+import { Veiculo } from './entities/veiculo.entity';
 import { Cliente } from '@/clientes/entities/cliente.entity';
+import { VeiculosGateway } from './veiculos.gateway';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Veiculo, Cliente])],
+  imports: [
+    TypeOrmModule.forFeature([Veiculo, Cliente]),
+  ],
   controllers: [VeiculosController],
-  providers: [VeiculosService, VeiculosGateway],
-  exports: [VeiculosService],
+  providers: [
+    VeiculosService,
+    VeiculosGateway,
+  ],
+  exports: [
+    VeiculosService,
+    VeiculosGateway, 
+  ],
 })
 export class VeiculosModule {}

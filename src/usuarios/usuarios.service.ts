@@ -45,7 +45,7 @@ export class UsuariosService {
   async findAll(): Promise<Usuario[]> {
     try {
       return await this.usuarioRepository.find({
-        select: ['id', 'username', 'ativo', 'ultimo_login', 'funcionario_id', 'cargo_id'],
+        select: ['id', 'nome' , 'email' ,'username', 'ativo', 'ultimo_login', 'funcionario_id', 'cargo_id'],
         relations: ['funcionario', 'cargo'],
         order: { username: 'ASC' }
       });
@@ -163,6 +163,7 @@ export class UsuariosService {
 
       const payload: JwtPayload = {
         sub: usuario.id,
+        nome: usuario.nome,
         username: usuario.username,
         funcionario_id: usuario.funcionario_id,
         cargo_id: usuario.cargo_id,
@@ -174,6 +175,7 @@ export class UsuariosService {
         access_token,
         usuario: {
           id: usuario.id,
+          nome: usuario.nome,
           username: usuario.username,
           funcionario_id: usuario.funcionario_id,
           cargo_id: usuario.cargo_id,

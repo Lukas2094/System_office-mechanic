@@ -8,6 +8,12 @@ export class Usuario {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column({ type: 'varchar', length: 100 })
+  nome: string;
+
+  @Column({ type: 'varchar', length: 100})
+  email: string;
+
   @Column({ name: 'funcionario_id', nullable: true })
   funcionario_id: number;
 

@@ -55,6 +55,19 @@ export class UsuariosGateway implements OnGatewayConnection, OnGatewayDisconnect
     }
   }
 
+  @SubscribeMessage('usuario:get-all')
+  async handleGetAll(@ConnectedSocket() client: Socket) {
+    try {
+      const usuarios = await this.usuariosService.findAll();
+      client.emit('usuario:list', usuarios);
+      return { success: true, data: usuarios };
+    } catch (error) {
+      this.logger.error(`Erro ao buscar usuários: ${error.message}`);
+      client.emit('usuario:get-all:error', { error: error.message });
+      return { success: false, error: error.message };
+    }
+  }
+
   @SubscribeMessage('usuario:create')
   async handleCreate(
     @ConnectedSocket() client: Socket,
@@ -75,6 +88,7 @@ export class UsuariosGateway implements OnGatewayConnection, OnGatewayDisconnect
       return { success: false, error: error.message };
     }
   }
+  
 
   @SubscribeMessage('usuario:update')
   async handleUpdate(

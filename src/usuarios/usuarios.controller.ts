@@ -46,6 +46,7 @@ export class UsuariosController {
   @UseGuards(JwtAuthGuard)
   async findAll() {
     const usuarios = await this.usuariosService.findAll();
+    this.gateway.server.emit('usuario:list', usuarios);
     return usuarios;
   }
 

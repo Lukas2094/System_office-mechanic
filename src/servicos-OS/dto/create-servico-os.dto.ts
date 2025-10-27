@@ -1,4 +1,4 @@
-import { IsInt, IsString, IsDecimal, IsEnum, IsOptional, Min } from 'class-validator';
+import { IsInt, IsString, IsNumber, IsEnum, IsOptional, Min } from 'class-validator';
 
 export class CreateServicoOsDto {
   @IsInt()
@@ -10,12 +10,12 @@ export class CreateServicoOsDto {
   descricao?: string;
 
   @IsOptional()
-  @IsDecimal()
+  @IsNumber()
   @Min(0)
   quantidade?: number;
 
   @IsOptional()
-  @IsDecimal()
+  @IsNumber()
   @Min(0)
   valor_unitario?: number;
 

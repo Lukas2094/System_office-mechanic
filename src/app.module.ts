@@ -14,6 +14,7 @@ import { PecasEstoqueModule } from './pecas-estoque/pecas-estoque.module';
 import { AgendamentosModule } from './agendamentos/agendamentos.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { RelatoriosModule } from './relatorios/relatorios.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { UploadsModule } from './uploads/uploads.module';
     AgendamentosModule,
     UploadsModule,
     UsuariosModule,
+    RelatoriosModule
   ],
   controllers: [AppController],
   providers: [AppService],

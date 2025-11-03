@@ -35,6 +35,48 @@ export class UsuariosGateway implements OnGatewayConnection, OnGatewayDisconnect
     this.logger.log(`Client disconnected: ${client.id}`);
   }
 
+
+  @SubscribeMessage('usuario:request-password-reset')
+  async handleRequestPasswordReset(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { email: string }
+  ) {
+    try {
+      this.logger.log(`Solicitação de reset de senha para: ${payload.email}`);
+
+      const result = await this.usuariosService.requestPasswordReset(payload.email);
+
+      client.emit('usuario:request-password-reset:success', result);
+
+      return { success: true, data: result };
+    } catch (error) {
+      this.logger.error(`Erro ao solicitar reset de senha: ${error.message}`);
+      client.emit('usuario:request-password-reset:error', { error: error.message });
+      return { success: false, error: error.message };
+    }
+  }
+
+  @SubscribeMessage('usuario:reset-password')
+  async handleResetPassword(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { token: string; newPassword: string }
+  ) {
+    try {
+      this.logger.log(`Redefinindo senha via token`);
+
+      const result = await this.usuariosService.resetPassword(payload.token, payload.newPassword);
+
+      client.emit('usuario:reset-password:success', result);
+      this.server.emit('usuario:password:reset', { message: 'Senha redefinida com sucesso' });
+
+      return { success: true, data: result };
+    } catch (error) {
+      this.logger.error(`Erro ao redefinir senha: ${error.message}`);
+      client.emit('usuario:reset-password:error', { error: error.message });
+      return { success: false, error: error.message };
+    }
+  }
+
   @SubscribeMessage('usuario:login')
   async handleLogin(
     @ConnectedSocket() client: Socket,

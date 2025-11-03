@@ -90,6 +90,19 @@ export class UsuariosController {
     return usuario;
   }
 
+  @Post('request-password-reset')
+  async requestPasswordReset(@Body() body: { email: string }) {
+    const result = await this.usuariosService.requestPasswordReset(body.email);
+    return result;
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Body() body: { token: string; newPassword: string }) {
+    const result = await this.usuariosService.resetPassword(body.token, body.newPassword);
+    this.gateway.server.emit('usuario:password:reset', { message: 'Senha redefinida com sucesso' });
+    return result;
+  }
+
   @Patch(':id/change-password')
   @UseGuards(JwtAuthGuard)
   async changePassword(

@@ -198,6 +198,62 @@ export class UsuariosService {
     }
   }
 
+  // Adicione no UsuariosService
+  async requestPasswordReset(email: string): Promise<{ message: string }> {
+    try {
+      const usuario = await this.usuarioRepository.findOne({
+        where: { email }
+      });
+
+      if (!usuario) {
+        // Por segurança, não revelamos se o email existe ou não
+        return { message: 'Se o email existir em nosso sistema, você receberá um link para redefinição de senha' };
+      }
+
+      // Gerar token de redefinição (válido por 1 hora)
+      const resetToken = this.jwtService.sign(
+        { sub: usuario.id, email: usuario.email },
+        { expiresIn: '1h', secret: process.env.JWT_RESET_SECRET || process.env.JWT_SECRET }
+      );
+
+      // Aqui você implementaria o envio de email
+      // await this.emailService.sendPasswordResetEmail(usuario.email, resetToken);
+
+      // Por enquanto, apenas logamos o token (em produção, remova isso)
+      console.log(`Token de reset para ${usuario.email}: ${resetToken}`);
+
+      return { message: 'Se o email existir em nosso sistema, você receberá um link para redefinição de senha' };
+    } catch (error) {
+      throw new InternalServerErrorException(`Erro ao solicitar redefinição de senha: ${error.message}`);
+    }
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    try {
+      // Verificar e decodificar o token
+      const payload = this.jwtService.verify(token, {
+        secret: process.env.JWT_RESET_SECRET || process.env.JWT_SECRET
+      });
+
+      const usuario = await this.findOne(payload.sub);
+
+      // Atualizar a senha
+      await this.usuarioRepository.update(usuario.id, {
+        senha_hash: newPassword // Será hasheado no entity
+      });
+
+      return { message: 'Senha redefinida com sucesso' };
+    } catch (error) {
+      if (error.name === 'TokenExpiredError') {
+        throw new BadRequestException('Token expirado. Solicite uma nova redefinição de senha.');
+      }
+      if (error.name === 'JsonWebTokenError') {
+        throw new BadRequestException('Token inválido.');
+      }
+      throw new InternalServerErrorException(`Erro ao redefinir senha: ${error.message}`);
+    }
+  }
+
   async changePassword(id: number, oldPassword: string, newPassword: string): Promise<{ message: string }> {
     try {
       const usuario = await this.findOne(id);

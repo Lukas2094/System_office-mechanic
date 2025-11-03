@@ -13,9 +13,14 @@ async function bootstrap() {
   });
 
   // CORS dinâmico (usa variável de ambiente em produção)
+  // app.enableCors({
+  //   origin: process.env.CORS_ORIGIN ?? 'http://localhost:3001',
+  //   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+  // });
+
   app.enableCors({
-    origin: process.env.CORS_ORIGIN ?? 'http://localhost:3001',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    origin: true,
+    credentials: true,
   });
 
   app.useGlobalPipes(new ValidationPipe());

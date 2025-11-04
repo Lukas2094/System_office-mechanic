@@ -93,6 +93,12 @@ export class UsuariosController {
   @Post('request-password-reset')
   async requestPasswordReset(@Body() body: { email: string }) {
     const result = await this.usuariosService.requestPasswordReset(body.email);
+
+    // Em desenvolvimento, podemos logar o token para facilitar os testes
+    if (process.env.NODE_ENV === 'development' && result.resetToken) {
+      console.log(`🔑 Token de reset (dev): ${result.resetToken}`);
+    }
+
     return result;
   }
 
@@ -142,5 +148,11 @@ export class UsuariosController {
     this.gateway.server.emit('usuario:deleted', { id });
 
     return usuario;
+  }
+
+  @Get('check/admin-exists')
+  async checkAdminExists() {
+    const hasAdmin = await this.usuariosService.hasAdminUser();
+    return { hasAdmin };
   }
 }

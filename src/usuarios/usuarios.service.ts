@@ -15,7 +15,7 @@ export class UsuariosService {
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   async create(createUsuarioDto: CreateUsuarioDto): Promise<Usuario> {
     try {
@@ -25,6 +25,16 @@ export class UsuariosService {
       });
       if (existingUser) {
         throw new BadRequestException('Username já está em uso');
+      }
+
+      // Verificar se já existe um usuário com cargo_id = 1 (Admin)
+      if (createUsuarioDto.cargo_id === 1) {
+        const existingAdmin = await this.usuarioRepository.findOne({
+          where: { cargo_id: 1 }
+        });
+        if (existingAdmin) {
+          throw new BadRequestException('Já existe um usuário administrador no sistema. Não é possível criar outro.');
+        }
       }
 
       const usuario = this.usuarioRepository.create({
@@ -45,7 +55,7 @@ export class UsuariosService {
   async findAll(): Promise<Usuario[]> {
     try {
       return await this.usuarioRepository.find({
-        select: ['id', 'nome' , 'email' ,'username', 'ativo', 'ultimo_login', 'funcionario_id', 'cargo_id'],
+        select: ['id', 'nome', 'email', 'username', 'ativo', 'ultimo_login', 'funcionario_id', 'cargo_id'],
         relations: ['funcionario', 'cargo'],
         order: { username: 'ASC' }
       });
@@ -60,11 +70,11 @@ export class UsuariosService {
         where: { id },
         relations: ['funcionario', 'cargo'],
       });
-      
+
       if (!usuario) {
         throw new NotFoundException(`Usuário com ID ${id} não encontrado`);
       }
-      
+
       return usuario;
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -80,11 +90,11 @@ export class UsuariosService {
         where: { username },
         relations: ['funcionario', 'cargo'],
       });
-      
+
       if (!usuario) {
         throw new NotFoundException(`Usuário ${username} não encontrado`);
       }
-      
+
       return usuario;
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -97,7 +107,7 @@ export class UsuariosService {
   async update(id: number, updateUsuarioDto: UpdateUsuarioDto): Promise<Usuario> {
     try {
       const usuario = await this.findOne(id);
-      
+
       // Verificar se novo username já existe (se foi alterado)
       if (updateUsuarioDto.username && updateUsuarioDto.username !== usuario.username) {
         const existingUser = await this.usuarioRepository.findOne({
@@ -105,6 +115,16 @@ export class UsuariosService {
         });
         if (existingUser) {
           throw new BadRequestException('Username já está em uso');
+        }
+      }
+
+      // Verificar se está tentando mudar para cargo_id = 1 e já existe outro admin
+      if (updateUsuarioDto.cargo_id === 1 && usuario.cargo_id !== 1) {
+        const existingAdmin = await this.usuarioRepository.findOne({
+          where: { cargo_id: 1 }
+        });
+        if (existingAdmin && existingAdmin.id !== id) {
+          throw new BadRequestException('Já existe um usuário administrador no sistema. Não é possível alterar o cargo para administrador.');
         }
       }
 
@@ -126,10 +146,16 @@ export class UsuariosService {
   async remove(id: number): Promise<{ message: string }> {
     try {
       const usuario = await this.findOne(id);
+
+      // Impedir a remoção do usuário administrador (cargo_id = 1)
+      if (usuario.cargo_id === 1) {
+        throw new BadRequestException('Não é possível remover o usuário administrador do sistema.');
+      }
+
       await this.usuarioRepository.remove(usuario);
       return { message: `Usuário com ID ${id} removido com sucesso` };
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
       throw new InternalServerErrorException(`Erro ao remover usuário ${id}: ${error.message}`);
@@ -157,8 +183,8 @@ export class UsuariosService {
       }
 
       // Atualizar último login
-      await this.usuarioRepository.update(usuario.id, { 
-        ultimo_login: new Date() 
+      await this.usuarioRepository.update(usuario.id, {
+        ultimo_login: new Date()
       });
 
       const payload: JwtPayload = {
@@ -198,8 +224,7 @@ export class UsuariosService {
     }
   }
 
-  // Adicione no UsuariosService
-  async requestPasswordReset(email: string): Promise<{ message: string }> {
+  async requestPasswordReset(email: string): Promise<{ message: string; resetToken?: string }> {
     try {
       const usuario = await this.usuarioRepository.findOne({
         where: { email }
@@ -216,11 +241,15 @@ export class UsuariosService {
         { expiresIn: '1h', secret: process.env.JWT_RESET_SECRET || process.env.JWT_SECRET }
       );
 
-      // Aqui você implementaria o envio de email
-      // await this.emailService.sendPasswordResetEmail(usuario.email, resetToken);
-
-      // Por enquanto, apenas logamos o token (em produção, remova isso)
-      console.log(`Token de reset para ${usuario.email}: ${resetToken}`);
+      // Em ambiente de desenvolvimento, retornamos o token para facilitar os testes
+      // Em produção, você implementaria o envio de email aqui
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Token de reset para ${usuario.email}: ${resetToken}`);
+        return {
+          message: 'Token de redefinição gerado com sucesso (apenas em desenvolvimento)',
+          resetToken
+        };
+      }
 
       return { message: 'Se o email existir em nosso sistema, você receberá um link para redefinição de senha' };
     } catch (error) {
@@ -257,13 +286,13 @@ export class UsuariosService {
   async changePassword(id: number, oldPassword: string, newPassword: string): Promise<{ message: string }> {
     try {
       const usuario = await this.findOne(id);
-      
+
       const isOldPasswordValid = await usuario.validatePassword(oldPassword);
       if (!isOldPasswordValid) {
         throw new BadRequestException('Senha atual incorreta');
       }
 
-      await this.usuarioRepository.update(id, { 
+      await this.usuarioRepository.update(id, {
         senha_hash: newPassword // Será hasheado no entity
       });
 
@@ -278,10 +307,17 @@ export class UsuariosService {
 
   async deactivateUser(id: number): Promise<Usuario> {
     try {
+      const usuario = await this.findOne(id);
+
+      // Impedir a desativação do usuário administrador
+      if (usuario.cargo_id === 1) {
+        throw new BadRequestException('Não é possível desativar o usuário administrador do sistema.');
+      }
+
       await this.usuarioRepository.update(id, { ativo: false });
       return await this.findOne(id);
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
       throw new InternalServerErrorException(`Erro ao desativar usuário: ${error.message}`);
@@ -327,6 +363,17 @@ export class UsuariosService {
       };
     } catch (error) {
       throw new InternalServerErrorException(`Erro ao calcular estatísticas: ${error.message}`);
+    }
+  }
+
+  async hasAdminUser(): Promise<boolean> {
+    try {
+      const admin = await this.usuarioRepository.findOne({
+        where: { cargo_id: 1 }
+      });
+      return !!admin;
+    } catch (error) {
+      throw new InternalServerErrorException(`Erro ao verificar administrador: ${error.message}`);
     }
   }
 }
